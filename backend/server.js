@@ -4,9 +4,9 @@ const cors = require('cors');
 const axios = require('axios');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/akipe';
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBqTXBlDlviimIzwCGoOtda0tVI9h5Matg';
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyBqTXBlDlviimIzwCGoOtda0tVI9h5Matg';
 
 // Middleware
 app.use(cors());
@@ -234,6 +234,6 @@ function getCategory(types) {
 }
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, 'localhost', () => {
+  console.log(`Server running on localhost:${PORT}`);
 });
