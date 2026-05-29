@@ -73,7 +73,8 @@ const MapView: React.FC<MapViewProps> = ({ center = defaultCenter, zoom = 12 }) 
 
   return (
     <LoadScript
-      googleMapsApiKey="AIzaSyCHVLloyILVDoB_EMeiFHnaJ8pOddxVk08"
+    googleMapsApiKey={process.env.AIzaSyCHVLloyILVDoB_EMeiFHnaJ8pOddxVk08}
+    libraries={["places", "marker"]}
       onLoad={handleLoad}
       onError={handleMapError}
       loadingElement={

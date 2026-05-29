@@ -1,87 +1,92 @@
-
-
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBqTXBlDlviimIzwCGoOtda0tVI9h5Matg';
+let googleMapsPromise: Promise<void> | null = null;
 
 export const loadGoogleMaps = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    let retryCount = 0;
-    const maxRetries = 3;
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("Google Maps solo puede cargarse en el navegador"));
+  }
 
-    const loadScript = () => {
-      // Define the callback function
-      (window as any).initMap = () => {
-        resolve();
-      };
+  if (
+    window.google &&
+    window.google.maps &&
+    window.google.maps.places &&
+    window.google.maps.geometry
+  ) {
+    return Promise.resolve();
+  }
 
-      // Check if Google Maps is already loaded
-      if (window.google && window.google.maps && window.google.maps.Map) {
-        resolve();
-        return;
-      }
+  if (googleMapsPromise) {
+    return googleMapsPromise;
+  }
 
-      // Check if script is already loading
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-      if (existingScript) {
-        // Wait for it to load
-        const checkGoogle = () => {
-          if (window.google && window.google.maps && window.google.maps.Map) {
-            resolve();
-          } else {
-            setTimeout(checkGoogle, 100);
-          }
-        };
-        checkGoogle();
-        return;
-      }
+  googleMapsPromise = new Promise((resolve, reject) => {
+    const existingScript = document.getElementById("google-maps-script");
 
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,geometry&loading=async`;
-    script.async = true;
-    script.defer = true;
-
-      script.onerror = () => {
-        retryCount++;
-        if (retryCount < maxRetries) {
-          console.log(`Retrying Google Maps load (${retryCount}/${maxRetries})`);
-          setTimeout(loadScript, 1000);
+    if (existingScript) {
+      const checkExistingLoad = () => {
+        if (
+          window.google &&
+          window.google.maps &&
+          window.google.maps.places &&
+          window.google.maps.geometry
+        ) {
+          resolve();
         } else {
-          reject(new Error('Failed to load Google Maps API after retries. Please check your API key and internet connection.'));
+          setTimeout(checkExistingLoad, 300);
         }
       };
 
-      script.onload = () => {
-        // Wait for Google Maps to be available
-        const checkGoogle = () => {
-          if (window.google && window.google.maps && window.google.maps.Map) {
-            resolve();
-          } else {
-            setTimeout(checkGoogle, 100);
-          }
-        };
-        checkGoogle();
-      };
-
-      document.head.appendChild(script);
-    };
-
-    loadScript();
-  });
-};
-
-export const loadScript = (src: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) {
-      resolve();
+      checkExistingLoad();
       return;
     }
 
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = true;
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    if (!apiKey) {
+      reject(
+        new Error(
+          "Falta NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en tu archivo .env.local"
+        )
+      );
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.async = true;
+    script.defer = true;
+
+    script.src =
+      `https://maps.googleapis.com/maps/api/js` +
+      `?key=${apiKey}` +
+      `&libraries=places,marker,geometry` +
+      `&v=weekly` +
+      `&loading=async`;
+
+    script.onload = () => {
+      const checkLibraries = () => {
+        if (
+          window.google &&
+          window.google.maps &&
+          window.google.maps.places &&
+          window.google.maps.geometry
+        ) {
+          resolve();
+          return;
+        }
+
+        setTimeout(checkLibraries, 300);
+      };
+
+      checkLibraries();
+    };
+
+    script.onerror = () => {
+      googleMapsPromise = null;
+      reject(new Error("No se pudo cargar Google Maps"));
+    };
 
     document.head.appendChild(script);
   });
+
+  return googleMapsPromise;
 };

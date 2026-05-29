@@ -27,11 +27,17 @@ export const useRestaurants = ({
   useEffect(() => {
     const initializeGooglePlaces = async () => {
       // Check if Google Maps is loaded
-      if (!window.google || !window.google.maps) {
-        console.error('Google Maps not loaded, cannot fetch restaurants');
-        setError('Google Maps not loaded');
-        return;
-      }
+      if (typeof window === "undefined") return;
+
+if (!window.google || !window.google.maps || !window.google.maps.places) {
+  console.warn("Google Maps aún no cargó. Reintentando búsqueda de restaurantes...");
+
+  const retryTimer = setTimeout(() => {
+    initializeGooglePlaces();
+  }, 700);
+
+  return () => clearTimeout(retryTimer);
+}
 
       try {
         const service = getGooglePlacesService();
