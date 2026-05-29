@@ -1588,10 +1588,15 @@ const EnhancedLimaMap: React.FC<EnhancedLimaMapProps> = ({
         marker.addListener("click", (markerEvent: any) => {
           setShowLocationControls(false);
 
-          // Primer click: usamos la posición real del click en pantalla como fallback inmediato.
-          // Así el popup aparece al primer toque aunque el OverlayView todavía no tenga projection.
-          const domEvent = markerEvent?.domEvent;
           const mapRect = mapRef.current?.getBoundingClientRect();
+          const domEvent = markerEvent?.domEvent;
+
+          // Fallback garantizado para que el popup salga desde el primer click.
+          // Si Google no entrega domEvent/projection a tiempo, usamos el centro visible del mapa.
+          const fallbackPoint = getClampedPopupPoint({
+            x: mapRef.current ? mapRef.current.clientWidth / 2 : window.innerWidth / 2,
+            y: mapRef.current ? mapRef.current.clientHeight / 2 : window.innerHeight / 2,
+          });
 
           if (domEvent && mapRect) {
             setPopupPoint(
@@ -1601,9 +1606,11 @@ const EnhancedLimaMap: React.FC<EnhancedLimaMapProps> = ({
               })
             );
           } else {
-            updatePopupScreenPoint(restaurant);
+            setPopupPoint(fallbackPoint);
           }
 
+          // Primero seteamos popupPoint, luego popupRestaurant.
+          // Así React ya tiene coordenadas y no espera un segundo click.
           setPopupRestaurant(restaurant);
 
           if (mapInstance.current) {
@@ -1615,9 +1622,14 @@ const EnhancedLimaMap: React.FC<EnhancedLimaMapProps> = ({
             );
           }
 
+          // Ajuste fino con proyección real cuando el mapa ya procesó el panTo.
           window.setTimeout(() => {
             updatePopupScreenPoint(restaurant);
-          }, 120);
+          }, 80);
+
+          window.setTimeout(() => {
+            updatePopupScreenPoint(restaurant);
+          }, 180);
         });
 
         markersRef.current.push(marker);
@@ -1962,12 +1974,12 @@ const EnhancedLimaMap: React.FC<EnhancedLimaMapProps> = ({
     <div className="fixed inset-0 z-10">
       <div ref={mapRef} className="h-full w-full" />
 
-      {popupRestaurant && popupPoint && (
+      {popupRestaurant && (
         <div
           className="pointer-events-none absolute z-40 w-[calc(100%-32px)] max-w-[390px] -translate-x-1/2 origin-top animate-in fade-in zoom-in-95 slide-in-from-top-1 duration-200"
           style={{
             left: popupPoint ? `${popupPoint.x}px` : "50%",
-            top: popupPoint ? `${popupPoint.y}px` : "50%",
+            top: popupPoint ? `${popupPoint.y}px` : "46%",
           }}
         >
           <div
